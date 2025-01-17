@@ -51,28 +51,29 @@ public class BeerClientMockTest {
     @Mock
     RestTemplateBuilder mockRestTemplateBuilder = new RestTemplateBuilder(new MockServerRestTemplateCustomizer());
 
+    BeerDTO dto;
+    String dtoJson;
+
     @BeforeEach
-    void setUp() {
+    void setUp() throws JsonProcessingException {
         RestTemplate restTemplate = restTemplateBuilderConfigured.build();
         server = MockRestServiceServer.bindTo(restTemplate).build();
         when(mockRestTemplateBuilder.build()).thenReturn(restTemplate);
         beerClient = new BeerClientImpl(mockRestTemplateBuilder);
+
+        dto = getBeerDto();
+        // creates Json obj we want to return back
+        dtoJson = objectMapper.writeValueAsString(dto);
     }
 
     @Test
     void testCreateBeer() throws JsonProcessingException {
-
-        BeerDTO dto = getBeerDto();
-
-        // creates Json obj we want to return back
-        String payLoad = objectMapper.writeValueAsString(dto);
-
         URI uri = UriComponentsBuilder.fromPath(BeerClientImpl.GET_BEER_BY_ID_PATH).build(dto.getId());
         server.expect(method(HttpMethod.POST)).andExpect(requestTo(URL + BeerClientImpl.GET_BEER_PATH))
                 .andRespond(withAccepted().location(uri));
 
         server.expect(method(HttpMethod.GET)).andExpect(requestToUriTemplate(URL + BeerClientImpl.GET_BEER_BY_ID_PATH, dto.getId()))
-                .andRespond(withSuccess(payLoad, MediaType.APPLICATION_JSON));
+                .andRespond(withSuccess(dtoJson, MediaType.APPLICATION_JSON));
 
         BeerDTO responseDto = beerClient.createBeer(dto);
         assertThat(responseDto.getId()).isEqualTo(dto.getId());
@@ -80,14 +81,8 @@ public class BeerClientMockTest {
 
     @Test
     void testGetBeer() throws JsonProcessingException {
-
-        BeerDTO dto = getBeerDto();
-
-        // creates Json obj we want to return back
-        String payLoad = objectMapper.writeValueAsString(dto);
-
         server.expect(method(HttpMethod.GET)).andExpect(requestToUriTemplate(URL + BeerClientImpl.GET_BEER_BY_ID_PATH, dto.getId()))
-                .andRespond(withSuccess(payLoad, MediaType.APPLICATION_JSON));
+                .andRespond(withSuccess(dtoJson, MediaType.APPLICATION_JSON));
 
         BeerDTO responseDto = beerClient.getBeerById(dto.getId());
         assertThat(responseDto.getId()).isEqualTo(dto.getId());
